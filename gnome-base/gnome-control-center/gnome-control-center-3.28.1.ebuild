@@ -73,7 +73,7 @@ COMMON_DEPEND="
 		>=net-misc/modemmanager-0.7.990 )
 	v4l? (
 		media-libs/clutter-gtk:1.0
-		>=media-video/cheese-3.5.91 )
+		>=media-video/cheese-3.28.0 )
 	input_devices_wacom? (
 		>=dev-libs/libwacom-0.7
 		>=media-libs/clutter-1.11.3:1.0
