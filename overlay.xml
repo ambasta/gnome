@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<layman>
+    <overlay name="ambasta" quality="experimental" status="unofficial" type="git" src="git://github.com/ambasta/gnome-ambasta.git">
+        <link>//github.com/ambasta/gnome ambasta</link>
+        <description> ambasta gentoo gnome overlay </description>
+    </overlay>
+</layman>
+
