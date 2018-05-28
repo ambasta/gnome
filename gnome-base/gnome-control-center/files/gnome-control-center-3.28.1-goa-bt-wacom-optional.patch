@@ -1,0 +1,267 @@
+From f9aa8d2085a0e9c6a44711eaffe95b1bbf4225af Mon Sep 17 00:00:00 2001
+From: Amit Prakash Ambasta <amit.ambasta@delhivery.com>
+Date: Mon, 28 May 2018 17:40:01 +0530
+Subject: [PATCH] Make goa/bluetooth/wacom optional
+
+---
+ meson.build                            | 61 +++++++++++++++++---------
+ meson_options.txt                      |  3 ++
+ panels/meson.build                     | 20 ++++++---
+ panels/power/meson.build               |  2 +-
+ panels/user-accounts/um-photo-dialog.c |  3 +-
+ shell/cc-panel-loader.c                |  8 ++++
+ shell/meson.build                      |  2 +-
+ 7 files changed, 69 insertions(+), 30 deletions(-)
+
+diff --git a/meson.build b/meson.build
+index 90ee21c..fbcccbc 100644
+--- a/meson.build
++++ b/meson.build
+@@ -89,6 +89,7 @@ libgvc_dep = libgvc.get_variable('libgvc_dep')
+ 
+ goa_req_version = '>= 3.25.3'
+ pulse_req_version = '>= 2.0'
++enable_goa = get_option('goa')
+ 
+ accounts_dep = dependency('accountsservice', version: '>= 0.6.39')
+ clutter_gtk_dep = dependency('clutter-gtk-1.0', required: false)
+@@ -98,7 +99,10 @@ gio_dep = dependency('gio-2.0')
+ glib_dep = dependency('glib-2.0', version: '>= 2.53.0')
+ gnome_desktop_dep = dependency('gnome-desktop-3.0', version: '>= 3.27.90')
+ gnome_settings_dep = dependency('gnome-settings-daemon', version: '>= 3.25.90')
+-goa_dep = dependency('goa-1.0', version: goa_req_version)
++
++if enable_goa
++  goa_dep = dependency('goa-1.0', version: goa_req_version, required: false)
++endif
+ gsettings_desktop_dep = dependency('gsettings-desktop-schemas', version: '>= 3.27.2')
+ libxml_dep = dependency('libxml-2.0')
+ polkit_gobject_dep = dependency('polkit-gobject-1', version: '>= 0.103')
+@@ -186,31 +190,48 @@ config_h.set('HAVE_NETWORK_MANAGER', host_is_linux,
+              description: 'Define to 1 if NetworkManager is available')
+ 
+ if host_is_linux_not_s390
+-  # gnome-bluetooth
+-  gnome_bluetooth_dep = dependency('gnome-bluetooth-1.0', version: '>= 3.18.2')
+-
+-  # Wacom
+-  assert(clutter_gtk_dep.found(), 'clutter-gtk library is required for wacom support, but is not available.')
++  enable_bluetooth = get_option('bluetooth')
++  if enable_bluetooth
++    # gnome-bluetooth
++    gnome_bluetooth_dep = dependency('gnome-bluetooth-1.0', version: '>= 3.18.2')
++  endif
++else
++  enable_bluetooth = false
++endif
+ 
+-  libwacom_dep = dependency('libwacom', version: '>= 0.7')
+ 
+-  wacom_deps = [
+-    clutter_gtk_dep,
+-    libwacom_dep,
+-    dependency('clutter-1.0', version: '>= 1.11.3'),
+-  ]
+-  config_h.set('HAVE_WACOM_3D_STYLUS', libwacom_dep.version().version_compare('>= 0.27'),
+-               description: 'Define to 1 if libwacom provides definition for 3D styli')
++if host_is_linux_not_s390
++  enable_wacom = get_option('wacom')
++  if enable_wacom
++    # Wacom
++    assert(clutter_gtk_dep.found(), 'clutter-gtk library is required for wacom support, but is not available.')
++
++    libwacom_dep = dependency('libwacom', version: '>= 0.7')
++
++    wacom_deps = [
++      clutter_gtk_dep,
++      libwacom_dep,
++      dependency('clutter-1.0', version: '>= 1.11.3'),
++    ]
++    config_h.set('HAVE_WACOM_3D_STYLUS', libwacom_dep.version().version_compare('>= 0.27'),
++                 description: 'Define to 1 if libwacom provides definition for 3D styli')
++  endif
+ else
++  enable_wacom = false
++endif
++
++if not host_is_linux_not_s390
+   message('Bluetooth and Wacom panels will not be built (no USB support on this platform)')
+ endif
+-config_h.set('BUILD_BLUETOOTH', host_is_linux_not_s390,
++config_h.set('BUILD_GOA', enable_goa,
++             description: 'Define to 1 to build online accounts panel')
++config_h.set('BUILD_BLUETOOTH', enable_bluetooth,
+              description: 'Define to 1 to build the Bluetooth panel')
+-config_h.set('HAVE_BLUETOOTH', host_is_linux_not_s390,
++config_h.set('HAVE_BLUETOOTH', enable_bluetooth,
+              description: 'Define to 1 if bluetooth support is available')
+-config_h.set('BUILD_WACOM', host_is_linux_not_s390,
++config_h.set('BUILD_WACOM', enable_wacom,
+              description: 'Define to 1 to build the Wacom panel')
+-config_h.set('HAVE_WACOM', host_is_linux_not_s390,
++config_h.set('HAVE_WACOM', enable_wacom,
+              description: 'Define to 1 if Wacom is supportted')
+ 
+ # Check for info panel
+@@ -262,11 +283,11 @@ meson.add_install_script(
+ )
+ 
+ output = meson.project_name() + ' was configured with the following options:\n'
+-output += '** gnome-bluetooth (Bluetooth panel): ' + host_is_linux_not_s390.to_string() + '\n'
++output += '** gnome-bluetooth (Bluetooth panel): ' + enable_bluetooth.to_string() + '\n'
+ output += '** Cheese (Users panel webcam support): ' + enable_cheese.to_string() + '\n'
+ output += '** IBus (Region panel IBus support): ' + enable_ibus.to_string() + '\n'
+ output += '** NetworkManager (Network panel): ' + host_is_linux.to_string() + '\n'
+-output += '** wacom (Wacom tablet panel): ' + host_is_linux_not_s390.to_string() + '\n'
++output += '** wacom (Wacom tablet panel): ' + enable_wacom.to_string() + '\n'
+ output += '** Wayland: ' + enable_wayland.to_string() + '\n'
+ output += '** gnome-session libexecdir: ' + gnome_session_libexecdir + '\n'
+ output += 'End options'
+diff --git a/meson_options.txt b/meson_options.txt
+index 7498af4..a7ac02e 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -3,3 +3,6 @@ option('documentation', type: 'boolean', value: false, description: 'build docum
+ option('gnome_session_libexecdir', type: 'string', value: '', description: 'Directory for gnome-session\'s libexecdir')
+ option('ibus', type: 'boolean', value: true, description: 'build with IBus support')
+ option('wayland', type: 'boolean', value: true, description: 'build with Wayland support')
++option('bluetooth', type: 'boolean', value: false, description: 'build with Bluetooth support')
++option('wacom', type: 'boolean', value: false, description: 'build with Wacom/tablet support')
++option('goa', type: 'boolean', value: false, description: 'build with Gnome Online Accounts support')
+diff --git a/panels/meson.build b/panels/meson.build
+index d671c47..92d9c37 100644
+--- a/panels/meson.build
++++ b/panels/meson.build
+@@ -1,7 +1,6 @@
+ subdir('common')
+ 
+ panels = [
+-  'background',
+   'color',
+   'datetime',
+   'display',
+@@ -9,7 +8,6 @@ panels = [
+   'keyboard',
+   'mouse',
+   'notifications',
+-  'online-accounts',
+   'power',
+   'printers',
+   'privacy',
+@@ -21,15 +19,23 @@ panels = [
+   'user-accounts'
+ ]
+ 
++if enable_goa
++  panels += [
++    'background',
++    'online-accounts'
++  ]
++endif
++
+ if host_is_linux
+   panels += ['network']
+ endif
+ 
+-if host_is_linux_not_s390
+-  panels += [
+-    'bluetooth',
+-    'wacom'
+-  ]
++if enable_bluetooth
++  panels += 'bluetooth'
++endif
++
++if enable_wacom
++  panels += 'wacom'
+ endif
+ 
+ panels_list = []
+diff --git a/panels/power/meson.build b/panels/power/meson.build
+index 9a27e93..22f3fbf 100644
+--- a/panels/power/meson.build
++++ b/panels/power/meson.build
+@@ -40,7 +40,7 @@ if host_is_linux
+   deps += network_manager_deps
+ endif
+ 
+-if host_is_linux_not_s390
++if enable_bluetooth
+   deps += gnome_bluetooth_dep
+ endif
+ 
+diff --git a/panels/user-accounts/um-photo-dialog.c b/panels/user-accounts/um-photo-dialog.c
+index 66b2360..90c4031 100644
+--- a/panels/user-accounts/um-photo-dialog.c
++++ b/panels/user-accounts/um-photo-dialog.c
+@@ -564,8 +564,9 @@ um_photo_dialog_class_init (UmPhotoDialogClass *klass)
+         gtk_widget_class_bind_template_child (wclass, UmPhotoDialog, take_picture_button);
+ 
+         gtk_widget_class_bind_template_callback (wclass, um_photo_dialog_select_file);
++#ifdef HAVE_CHEESE
+         gtk_widget_class_bind_template_callback (wclass, webcam_icon_selected);
+-
++#endif
+         oclass->dispose = um_photo_dialog_dispose;
+ }
+ 
+diff --git a/shell/cc-panel-loader.c b/shell/cc-panel-loader.c
+index 675833c..09516a7 100644
+--- a/shell/cc-panel-loader.c
++++ b/shell/cc-panel-loader.c
+@@ -29,7 +29,9 @@
+ #ifndef CC_PANEL_LOADER_NO_GTYPES
+ 
+ /* Extension points */
++#ifdef BUILD_GOA
+ extern GType cc_background_panel_get_type (void);
++#endif /* BUILD_GOA */
+ #ifdef BUILD_BLUETOOTH
+ extern GType cc_bluetooth_panel_get_type (void);
+ #endif /* BUILD_BLUETOOTH */
+@@ -46,7 +48,9 @@ extern GType cc_network_panel_get_type (void);
+ extern GType cc_wifi_panel_get_type (void);
+ #endif /* BUILD_NETWORK */
+ extern GType cc_notifications_panel_get_type (void);
++#ifdef BUILD_GOA
+ extern GType cc_goa_panel_get_type (void);
++#endif /* BUILD_GOA */
+ extern GType cc_power_panel_get_type (void);
+ extern GType cc_printers_panel_get_type (void);
+ extern GType cc_privacy_panel_get_type (void);
+@@ -74,7 +78,9 @@ static struct {
+   GType (*get_type)(void);
+ #endif
+ } all_panels[] = {
++#ifdef BUILD_GOA
+   PANEL_TYPE("background",       cc_background_panel_get_type   ),
++#endif
+ #ifdef BUILD_BLUETOOTH
+   PANEL_TYPE("bluetooth",        cc_bluetooth_panel_get_type    ),
+ #endif
+@@ -91,7 +97,9 @@ static struct {
+   PANEL_TYPE("wifi",             cc_wifi_panel_get_type         ),
+ #endif
+   PANEL_TYPE("notifications",    cc_notifications_panel_get_type),
++#ifdef BUILD_GOA
+   PANEL_TYPE("online-accounts",  cc_goa_panel_get_type          ),
++#endif
+   PANEL_TYPE("power",            cc_power_panel_get_type        ),
+   PANEL_TYPE("printers",         cc_printers_panel_get_type     ),
+   PANEL_TYPE("privacy",          cc_privacy_panel_get_type      ),
+diff --git a/shell/meson.build b/shell/meson.build
+index d936452..b11ab31 100644
+--- a/shell/meson.build
++++ b/shell/meson.build
+@@ -86,7 +86,7 @@ if enable_cheese
+   shell_deps += cheese_deps
+ endif
+ 
+-if host_is_linux_not_s390
++if enable_wacom
+   shell_deps += wacom_deps
+ endif
+ 
+-- 
+2.17.0
+

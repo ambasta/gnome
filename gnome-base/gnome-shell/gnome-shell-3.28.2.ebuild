@@ -120,17 +120,9 @@ DEPEND="${COMMON_DEPEND}
 
 src_configure() {
 	gnome-meson_src_configure \
-		-Denable-man=true \
-		-Denable-documentation=false \
-		-Denable-systemd=$(usex !openrc-force yes no) \
-		-Denable-networkmanager=$(usex networkmanager yes no) \
-		$(meson_use nsplugin enable-browser-plugin) 
-}
-
-src_install() {
-	gnome-meson_src_install
-}
-
-pkg_postinst() {
-	gnome-meson_pkg_postinst
+		-Dman=true \
+		$(meson_use doc gtk_doc) \
+		$(meson_use systemd systemd) \
+		$(meson_use networkmanager networkmanager) \
+		$(meson_use nsplugin browser_plugin) 
 }
