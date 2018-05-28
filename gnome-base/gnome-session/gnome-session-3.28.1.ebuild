@@ -74,8 +74,8 @@ DEPEND="${COMMON_DEPEND}
 
 src_configure() {
 	gnome-meson_src_configure \
-		-Denable-deprecation-flags=no \
-		-Denable-session_selector \
+		-Ddeprecation_flags=false \
+		-Dsession_selector=true \
 		$(meson_use systemd systemd) \
 		$(meson_use systemd systemd_journal) \
 		$(meson_use !systemd consolekit) \
