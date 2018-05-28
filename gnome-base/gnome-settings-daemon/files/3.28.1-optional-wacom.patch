@@ -1,0 +1,41 @@
+From 168b7880d356114e000a626dbe3258fc2892489e Mon Sep 17 00:00:00 2001
+From: Amit Prakash Ambasta <amit.ambasta@delhivery.com>
+Date: Mon, 28 May 2018 15:26:31 +0530
+Subject: [PATCH] Option to disable libwacom
+
+---
+ meson.build       | 5 ++++-
+ meson_options.txt | 2 +-
+ 2 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/meson.build b/meson.build
+index 5c66be4..5964396 100644
+--- a/meson.build
++++ b/meson.build
+@@ -134,7 +134,10 @@ endif
+ config_h.set10('HAVE_WAYLAND', enable_wayland)
+ 
+ # wacom (disabled for s390/s390x and non Linux platforms)
+-enable_wacom = host_is_linux_not_s390
++enable_wacom = get_option('wacom')
++if enable_wacom
++    enable_wacom = host_is_linux_not_s390
++endif
+ if enable_wacom
+   assert(enable_gudev, 'GUDev support is required for wacom support.')
+   libwacom_dep = dependency('libwacom', version: '>= 0.7')
+diff --git a/meson_options.txt b/meson_options.txt
+index 50bd174..e321fda 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -1,6 +1,6 @@
+ option('nssdb_dir', type: 'string', value: '', description: 'Absolute path to the system NSS database directory')
+ option('udev_dir', type: 'string', value: '', description: 'Absolute path of the udev base directory')
+-
++option('wacom', type: 'boolean', value: false, description: 'build with libwacom support')
+ option('alsa', type: 'boolean', value: true, description: 'build with ALSA support (not optional on Linux platforms)')
+ option('gudev', type: 'boolean', value: true, description: 'build with gudev device support (not optional on Linux platforms)')
+ option('cups', type: 'boolean', value: true, description: 'build with CUPS support')
+-- 
+2.17.0
+
