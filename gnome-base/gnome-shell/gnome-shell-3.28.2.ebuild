@@ -13,7 +13,7 @@ HOMEPAGE="https://wiki.gnome.org/Projects/GnomeShell"
 
 LICENSE="GPL-2+ LGPL-2+"
 SLOT="0"
-IUSE="+bluetooth +browser-extension +ibus +networkmanager nsplugin -openrc-force"
+IUSE="+bluetooth +browser-extension doc +ibus +networkmanager nsplugin -openrc-force"
 REQUIRED_USE="${PYTHON_REQUIRED_USE}"
 
 KEYWORDS="~amd64 ~ia64 ~ppc ~ppc64 ~x86"
