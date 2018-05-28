@@ -109,7 +109,7 @@ PDEPEND="
 "
 DEPEND="${COMMON_DEPEND}
 	dev-libs/libxslt
-	dev-libs/sassc
+	dev-lang/sassc
 	>=dev-util/gdbus-codegen-2.45.3
 	>=dev-util/gtk-doc-am-1.17
 	gnome-base/gnome-common
