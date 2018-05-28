@@ -118,12 +118,6 @@ DEPEND="${COMMON_DEPEND}
 	virtual/pkgconfig
 "
 
-PATCHES=(
-	# Change favorites defaults, bug #479918
-	"${FILESDIR}"/${PN}-3.22.0-defaults.patch
-	# Fix automagic gnome-bluetooth dep, bug #398145
-)
-
 src_configure() {
 	gnome-meson_src_configure \
 		-Denable-man=true \
@@ -135,58 +129,8 @@ src_configure() {
 
 src_install() {
 	gnome-meson_src_install
-	python_replicate_script "${ED}/usr/bin/gnome-shell-extension-tool"
-	python_replicate_script "${ED}/usr/bin/gnome-shell-perf-tool"
-
-	# Required for gnome-shell on hardened/PaX, bug #398941
-	# Future-proof for >=spidermonkey-1.8.7 following polkit's example
-	if has_version '<dev-lang/spidermonkey-1.8.7'; then
-		pax-mark mr "${ED}usr/bin/gnome-shell"{,-extension-prefs}
-	elif has_version '>=dev-lang/spidermonkey-1.8.7[jit]'; then
-		pax-mark m "${ED}usr/bin/gnome-shell"{,-extension-prefs}
-	# Required for gnome-shell on hardened/PaX #457146 and #457194
-	# PaX EMUTRAMP need to be on
-	elif has_version '>=dev-libs/libffi-3.0.13[pax_kernel]'; then
-		pax-mark E "${ED}usr/bin/gnome-shell"{,-extension-prefs}
-	else
-		pax-mark m "${ED}usr/bin/gnome-shell"{,-extension-prefs}
-	fi
 }
 
 pkg_postinst() {
 	gnome-meson_pkg_postinst
-
-	if ! has_version 'media-libs/gst-plugins-good:1.0' || \
-	   ! has_version 'media-plugins/gst-plugins-vpx:1.0'; then
-		ewarn "To make use of GNOME Shell's built-in screen recording utility,"
-		ewarn "you need to either install media-libs/gst-plugins-good:1.0"
-		ewarn "and media-plugins/gst-plugins-vpx:1.0, or use dconf-editor to change"
-		ewarn "apps.gnome-shell.recorder/pipeline to what you want to use."
-	fi
-
-	if ! has_version "media-libs/mesa[llvm]"; then
-		elog "llvmpipe is used as fallback when no 3D acceleration"
-		elog "is available. You will need to enable llvm USE for"
-		elog "media-libs/mesa if you do not have hardware 3D setup."
-	fi
-
-	# https://bugs.gentoo.org/show_bug.cgi?id=563084
-	if has_version "x11-drivers/nvidia-drivers[-kms]"; then
-		ewarn "You will need to enable kms support in x11-drivers/nvidia-drivers,"
-		ewarn "otherwise Gnome will fail to start"
-	fi
-
-	if ! systemd_is_booted; then
-		ewarn "${PN} needs Systemd to be *running* for working"
-		ewarn "properly. Please follow this guide to migrate:"
-		ewarn "https://wiki.gentoo.org/wiki/Systemd"
-	fi
-
-	if use openrc-force; then
-		ewarn "You are enabling 'openrc-force' USE flag to skip systemd requirement,"
-		ewarn "this can lead to unexpected problems and is not supported neither by"
-		ewarn "upstream neither by Gnome Gentoo maintainers. If you suffer any problem,"
-		ewarn "you will need to disable this USE flag system wide and retest before"
-		ewarn "opening any bug report."
-	fi
 }
