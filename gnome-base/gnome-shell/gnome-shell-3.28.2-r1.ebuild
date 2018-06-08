@@ -3,19 +3,22 @@
 
 EAPI=6
 GNOME2_LA_PUNT="yes"
-PYTHON_COMPAT=( python3_{4,5,6} )
+PYTHON_COMPAT=( python{3_4,3_5,3_6} )
 
 inherit autotools gnome2 multilib pax-utils python-r1 systemd meson ninja-utils
+if [[ ${PV} = 9999 ]]; then
+	inherit gnome2-live
+fi
 
 DESCRIPTION="Provides core UI functions for the GNOME 3 desktop"
 HOMEPAGE="https://wiki.gnome.org/Projects/GnomeShell"
 
 LICENSE="GPL-2+ LGPL-2+"
 SLOT="0"
-IUSE="+bluetooth +browser-extension +ibus +networkmanager nsplugin -openrc-force"
+IUSE="+bluetooth +networkmanager nsplugin +ibus -openrc-force systemd"
 REQUIRED_USE="${PYTHON_REQUIRED_USE}"
 
-KEYWORDS="~amd64 ~ia64 ~ppc ~ppc64 ~x86"
+KEYWORDS="~alpha ~amd64 ~arm ~ia64 ~ppc ~ppc64 ~sparc ~x86"
 
 # libXfixes-5.0 needed for pointer barriers
 # FIXME:
@@ -27,7 +30,7 @@ COMMON_DEPEND="
 	>=dev-libs/atk-2[introspection]
 	>=app-crypt/gcr-3.7.5[introspection]
 	>=dev-libs/glib-2.53.4:2[dbus]
-	>=dev-libs/gjs-1.47.0
+	>=dev-libs/gjs-1.52.0
 	>=dev-libs/gobject-introspection-1.49.1:=
 	dev-libs/libical:=
 	>=x11-libs/gtk+-3.15.0:3[introspection]
@@ -41,12 +44,11 @@ COMMON_DEPEND="
 	>=sys-auth/polkit-0.100[introspection]
 	>=x11-libs/libXfixes-5.0
 	x11-libs/libXtst
-	>=x11-wm/mutter-3.28.0:0/0[introspection]
+	>=x11-wm/mutter-3.29.2[introspection]
 	>=x11-libs/startup-notification-0.11
 	dev-lang/sassc
 	${PYTHON_DEPS}
 	dev-python/pygobject:3[${PYTHON_USEDEP}]
-
 	dev-libs/dbus-glib
 	dev-libs/libxml2:2
 	media-libs/libcanberra[gtk3]
@@ -55,11 +57,10 @@ COMMON_DEPEND="
 	>=net-libs/libsoup-2.40:2.4[introspection]
 	x11-libs/libX11
 	x11-libs/gdk-pixbuf:2[introspection]
-
 	x11-apps/mesa-progs
-	bluetooth? ( >=net-wireless/gnome-bluetooth-3.20[introspection] )
+	>=net-wireless/gnome-bluetooth-3.20[introspection]
 	networkmanager? (
-		>=app-crypt/libsecret-0.18
+		app-crypt/libsecret
 		>=gnome-extra/nm-applet-0.9.8
 		>=net-misc/networkmanager-0.9.8:=[introspection] )
 	nsplugin? ( >=dev-libs/json-glib-0.13.2 )
@@ -83,27 +84,21 @@ RDEPEND="${COMMON_DEPEND}
 	>=sys-apps/accountsservice-0.6.14[introspection]
 	>=sys-power/upower-0.99:=[introspection]
 	x11-libs/pango[introspection]
-
 	>=gnome-base/gnome-session-2.91.91
 	>=gnome-base/gnome-settings-daemon-3.8.3
-
 	!openrc-force? ( >=sys-apps/systemd-31 )
-
 	x11-misc/xdg-utils
-
 	media-fonts/dejavu
 	>=x11-themes/adwaita-icon-theme-3.19.90
-
 	networkmanager? (
 		net-misc/mobile-broadband-provider-info
 		sys-libs/timezone-data )
-	ibus? ( >=app-i18n/ibus-1.5.2[dconf(+),gtk,introspection] )
+	ibus? ( >=app-i18n/ibus-1.4.99[dconf(+),gtk,introspection] )
 "
 # avoid circular dependency, see bug #546134
 PDEPEND="
 	>=gnome-base/gdm-3.5[introspection]
 	>=gnome-base/gnome-control-center-3.8.3[bluetooth(+)?,networkmanager(+)?]
-	browser-extension? ( gnome-extra/chrome-gnome-shell )
 "
 DEPEND="${COMMON_DEPEND}
 	dev-libs/libxslt
@@ -112,6 +107,10 @@ DEPEND="${COMMON_DEPEND}
 	>=sys-devel/gettext-0.19.6
 	virtual/pkgconfig
 "
+# libmozjs.so is picked up from /usr/lib while compiling, so block at build-time
+# https://bugs.gentoo.org/show_bug.cgi?id=360413
+
+MAKEOPTS="-j1"
 
 src_prepare() {
 	# Change favorites defaults, bug #479918
